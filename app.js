@@ -1,41 +1,45 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+var schedule = require('node-schedule');
+const request = require('request');
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
 
-var app = express();
+const SERVER_URL = process.env["SERVER_URL"];
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
+const API_VERSION = "v1";
 
-app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+// Every minute...
+schedule.scheduleJob('*/5 * * * * *', function () {
+  // Get all the services from the API.
+  request(SERVER_URL + API_VERSION + "/api/services/", {json: true}, (err, res, body) => {
+    if (err) {
+      return console.error(err);
+    } else {
+      // For each service to be monitored...
+      for (var i = 0; i < body.length; i++) {
+        let service = body[i]
+        // Make a request to the service.
+        request(service.serviceURL, (err, res, body) => {
+          if (err) {
+            console.error(err.toLocaleString())
+            status = "DOWN"
+          } else {
+            status = "OK"
+          }
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+          // If the status has changed...
+          if (status !== service.status) {
+            //Update the status.
+            service.status = status
+            request({
+              url: service.url,
+              method: 'PUT',
+              json: service
+            }, function(error, response, body){
+              console.log(body);
+            });
+          }
+        })
+      }
+    }
+  });
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
 });
-
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
-});
-
-module.exports = app;
