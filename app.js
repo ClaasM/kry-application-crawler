@@ -29,6 +29,7 @@ schedule.scheduleJob('*/5 * * * * *', function () {
           if (status !== service.status) {
             //Update the status.
             service.status = status
+            // Note that for added convenience, the service JSON objects always carry around their own endpoint
             request({
               url: service.url,
               method: 'PUT',

@@ -1,5 +1,7 @@
 # KRY Application - Crawler
 
+This is the crawler that `GET`s the service URLs from the API, tests them, and if their status changed sends a `PUT` request back to the API.
+
 ### Prerequisites
 * Install [Node.js](http://nodejs.org)
 * Install dependencies: `npm install`
